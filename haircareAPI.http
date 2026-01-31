@@ -1,0 +1,6 @@
+@haircareAPI_HostAddress = http://localhost:5275
+
+GET {{haircareAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
