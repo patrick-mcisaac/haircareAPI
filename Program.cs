@@ -1,41 +1,115 @@
+using Microsoft.EntityFrameworkCore;
+using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Http.Json;
+using Scalar.AspNetCore;
+using Haircare.Models;
+using Haircare.Models.DTO;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehaviour", true);
+
+builder.Services.AddNpgsql<HairCareDbContext>(builder.Configuration["haircareDbConnectionString"]);
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+            .AllowAnyMethod()
+            .AllowAnyHeader();
+    });
+});
+
 var app = builder.Build();
+
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.MapScalarApiReference(options =>
+    {
+        options.Title = "My API Documentation";
+        options.Theme = ScalarTheme.Saturn;
+    });
 }
 
 app.UseHttpsRedirection();
+app.UseCors("AllowAll");
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
+// Customers
 
-app.MapGet("/weatherforecast", () =>
+app.MapGet("/api/customers", (HairCareDbContext db) =>
 {
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
+    return Results.Ok(db.Customers.Select(c => new CustomerDTO
+    {
+        Id = c.Id,
+        FirstName = c.FirstName,
+        LastName = c.LastName,
+        Email = c.Email,
+        PhoneNumber = c.PhoneNumber
+    }).ToList());
+});
+
+app.MapGet("/api/customers/{id}", (int id, HairCareDbContext db) =>
+{
+    Customer? customer = db.Customers.SingleOrDefault(c => c.Id == id);
+
+    if (customer == null)
+    {
+        return Results.NotFound();
+    }
+
+    return Results.Ok(new CustomerDTO
+    {
+        Id = customer.Id,
+        FirstName = customer.FirstName,
+        LastName = customer.LastName,
+        Email = customer.Email,
+        PhoneNumber = customer.PhoneNumber
+    });
+});
+
+// Appointments
+app.MapGet("api/appointments", (HairCareDbContext db) =>
+{
+    return Results.Ok(db.Appointments.Select(a => new AppointmentDTO()
+    {
+        Id = a.Id,
+        AppointmentTime = a.AppointmentTime,
+        CustomerId = a.CustomerId,
+        StylistId = a.StylistId
+    }));
+});
+
+app.MapPost("api/appointments", (HairCareDbContext db, Appointment appointment) =>
+{
+    appointment.Id = db.Appointments.Count() + 1;
+    db.Appointments.Add(appointment);
+    db.SaveChanges();
+    return Results.Created($"/api/appointments/{appointment.Id}", appointment);
+});
+
+
+// Stylists
+
+app.MapGet("api/stylists", (HairCareDbContext db) =>
+{
+    return Results.Ok(db.Stylists.Select(s => new StylistDTO()
+    {
+        Id = s.Id,
+        FirstName = s.FirstName,
+        LastName = s.LastName,
+        Email = s.Email,
+        PhoneNumber = s.PhoneNumber
+    }));
+});
+
 
 app.Run();
 
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
+
