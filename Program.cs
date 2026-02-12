@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http.Json;
 using Scalar.AspNetCore;
 using Haircare.Models;
 using Haircare.Models.DTO;
+using System.Reflection.Metadata.Ecma335;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -77,13 +78,25 @@ app.MapGet("/api/customers/{id}", (int id, HairCareDbContext db) =>
 // Appointments
 app.MapGet("api/appointments", (HairCareDbContext db) =>
 {
-    return Results.Ok(db.Appointments.Select(a => new AppointmentDTO()
-    {
-        Id = a.Id,
-        AppointmentTime = a.AppointmentTime,
-        CustomerId = a.CustomerId,
-        StylistId = a.StylistId
-    }));
+    return Results.Ok(db.Appointments
+    .Include(a => a.Customer)
+    .Select(a =>
+             new AppointmentDTO()
+             {
+                 Id = a.Id,
+                 AppointmentTime = a.AppointmentTime,
+                 CustomerId = a.CustomerId,
+                 StylistId = a.StylistId,
+                 Customer = a.Customer == null ? null : new CustomerDTO()
+                 {
+                     Id = a.Customer.Id,
+                     FirstName = a.Customer.FirstName,
+                     LastName = a.Customer.LastName,
+                     Email = a.Customer.Email,
+                     PhoneNumber = a.Customer.PhoneNumber
+                 }
+             }
+        ));
 });
 
 app.MapPost("api/appointments", (HairCareDbContext db, Appointment appointment) =>

@@ -11,4 +11,6 @@ public class Appointment
     public int StylistId { get; set; }
     [Required]
     public DateTime AppointmentTime { get; set; }
+
+    public Customer Customer { get; set; }
 }
