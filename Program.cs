@@ -135,6 +135,18 @@ app.MapDelete("api/appointments", (HairCareDbContext db, int id) =>
     return Results.NoContent();
 });
 
+// Services
+app.MapGet("api/services", (HairCareDbContext db) =>
+{
+    List<ServiceDTO> services = db.Services.Select(s => new ServiceDTO
+    {
+        Id = s.Id,
+        Name = s.Name,
+        Price = s.Price
+    }).ToList();
+
+    return Results.Ok(services);
+});
 
 // Stylists
 
