@@ -15,21 +15,6 @@ namespace haircareAPI.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "Appointments",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    CustomerId = table.Column<int>(type: "integer", nullable: false),
-                    StylistId = table.Column<int>(type: "integer", nullable: false),
-                    AppointmentTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Appointments", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "AppointmentServices",
                 columns: table => new
                 {
@@ -79,6 +64,7 @@ namespace haircareAPI.Migrations
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Active = table.Column<bool>(type: "boolean", nullable: false),
                     FirstName = table.Column<string>(type: "text", nullable: false),
                     LastName = table.Column<string>(type: "text", nullable: false),
                     PhoneNumber = table.Column<string>(type: "text", nullable: false),
@@ -87,6 +73,33 @@ namespace haircareAPI.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Stylists", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Appointments",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    CustomerId = table.Column<int>(type: "integer", nullable: false),
+                    StylistId = table.Column<int>(type: "integer", nullable: false),
+                    AppointmentTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Appointments", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Appointments_Customers_CustomerId",
+                        column: x => x.CustomerId,
+                        principalTable: "Customers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Appointments_Stylists_StylistId",
+                        column: x => x.StylistId,
+                        principalTable: "Stylists",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.InsertData(
@@ -112,13 +125,23 @@ namespace haircareAPI.Migrations
 
             migrationBuilder.InsertData(
                 table: "Stylists",
-                columns: new[] { "Id", "Email", "FirstName", "LastName", "PhoneNumber" },
+                columns: new[] { "Id", "Active", "Email", "FirstName", "LastName", "PhoneNumber" },
                 values: new object[,]
                 {
-                    { 1, "jOneal@gmail.com", "Jess", "Oneal", "1-615-435-6829" },
-                    { 2, "m.gonzales@example.com", "Maria", "Gonzales", "1-615-123-4567" },
-                    { 3, "d.smith@example.com", "David", "Smith", "1-615-987-6543" }
+                    { 1, false, "jOneal@gmail.com", "Jess", "Oneal", "1-615-435-6829" },
+                    { 2, false, "m.gonzales@example.com", "Maria", "Gonzales", "1-615-123-4567" },
+                    { 3, false, "d.smith@example.com", "David", "Smith", "1-615-987-6543" }
                 });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Appointments_CustomerId",
+                table: "Appointments",
+                column: "CustomerId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Appointments_StylistId",
+                table: "Appointments",
+                column: "StylistId");
         }
 
         /// <inheritdoc />
@@ -131,10 +154,10 @@ namespace haircareAPI.Migrations
                 name: "AppointmentServices");
 
             migrationBuilder.DropTable(
-                name: "Customers");
+                name: "Services");
 
             migrationBuilder.DropTable(
-                name: "Services");
+                name: "Customers");
 
             migrationBuilder.DropTable(
                 name: "Stylists");

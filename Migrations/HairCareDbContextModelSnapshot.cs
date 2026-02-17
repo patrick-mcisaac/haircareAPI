@@ -40,6 +40,10 @@ namespace haircareAPI.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("StylistId");
+
                     b.ToTable("Appointments");
                 });
 
@@ -171,6 +175,9 @@ namespace haircareAPI.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("text");
@@ -195,6 +202,7 @@ namespace haircareAPI.Migrations
                         new
                         {
                             Id = 1,
+                            Active = false,
                             Email = "jOneal@gmail.com",
                             FirstName = "Jess",
                             LastName = "Oneal",
@@ -203,6 +211,7 @@ namespace haircareAPI.Migrations
                         new
                         {
                             Id = 2,
+                            Active = false,
                             Email = "m.gonzales@example.com",
                             FirstName = "Maria",
                             LastName = "Gonzales",
@@ -211,11 +220,41 @@ namespace haircareAPI.Migrations
                         new
                         {
                             Id = 3,
+                            Active = false,
                             Email = "d.smith@example.com",
                             FirstName = "David",
                             LastName = "Smith",
                             PhoneNumber = "1-615-987-6543"
                         });
+                });
+
+            modelBuilder.Entity("Haircare.Models.Appointment", b =>
+                {
+                    b.HasOne("Haircare.Models.Customer", "Customer")
+                        .WithMany("Appointments")
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Haircare.Models.Stylist", "Stylist")
+                        .WithMany("Appointments")
+                        .HasForeignKey("StylistId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Stylist");
+                });
+
+            modelBuilder.Entity("Haircare.Models.Customer", b =>
+                {
+                    b.Navigation("Appointments");
+                });
+
+            modelBuilder.Entity("Haircare.Models.Stylist", b =>
+                {
+                    b.Navigation("Appointments");
                 });
 #pragma warning restore 612, 618
         }

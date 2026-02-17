@@ -1,10 +1,8 @@
 using Microsoft.EntityFrameworkCore;
-using System.Text.Json.Serialization;
-using Microsoft.AspNetCore.Http.Json;
 using Scalar.AspNetCore;
 using Haircare.Models;
 using Haircare.Models.DTO;
-using System.Reflection.Metadata.Ecma335;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -58,7 +56,7 @@ app.MapGet("/api/customers", (HairCareDbContext db) =>
 
 app.MapGet("/api/customers/{id}", (int id, HairCareDbContext db) =>
 {
-    Customer? customer = db.Customers.SingleOrDefault(c => c.Id == id);
+    Customer? customer = db.Customers.Include(c => c.Appointments).SingleOrDefault(c => c.Id == id);
 
     if (customer == null)
     {
@@ -71,8 +69,22 @@ app.MapGet("/api/customers/{id}", (int id, HairCareDbContext db) =>
         FirstName = customer.FirstName,
         LastName = customer.LastName,
         Email = customer.Email,
-        PhoneNumber = customer.PhoneNumber
+        PhoneNumber = customer.PhoneNumber,
+        Appointments = customer.Appointments.Select(a => new AppointmentDTO()
+        {
+            Id = a.Id,
+            CustomerId = a.CustomerId,
+            StylistId = a.StylistId,
+            AppointmentTime = a.AppointmentTime
+        }).ToList()
     });
+});
+
+app.MapPost("/api/customers", (HairCareDbContext db, Customer customer) =>
+{
+    db.Customers.Add(customer);
+    db.SaveChanges();
+    return Results.Created($"/api/customers/{customer.Id}", customer);
 });
 
 // Appointments
@@ -87,7 +99,7 @@ app.MapGet("api/appointments", (HairCareDbContext db) =>
                  AppointmentTime = a.AppointmentTime,
                  CustomerId = a.CustomerId,
                  StylistId = a.StylistId,
-                 Customer = a.Customer == null ? null : new CustomerDTO()
+                 Customer = new CustomerDTO()
                  {
                      Id = a.Customer.Id,
                      FirstName = a.Customer.FirstName,
@@ -107,6 +119,22 @@ app.MapPost("api/appointments", (HairCareDbContext db, Appointment appointment) 
     return Results.Created($"/api/appointments/{appointment.Id}", appointment);
 });
 
+app.MapDelete("api/appointments", (HairCareDbContext db, int id) =>
+{
+    Appointment? appointment = db.Appointments.SingleOrDefault(a => a.Id == id);
+
+
+    if (appointment == null)
+    {
+        return Results.NotFound();
+    }
+
+    db.Appointments.Remove(appointment);
+    db.SaveChanges();
+
+    return Results.NoContent();
+});
+
 
 // Stylists
 
@@ -122,6 +150,55 @@ app.MapGet("api/stylists", (HairCareDbContext db) =>
     }));
 });
 
+app.MapGet("api/stylists/{id}", (HairCareDbContext db, int id) =>
+{
+    Stylist? stylist = db.Stylists
+    .Include(s => s.Appointments)
+    .SingleOrDefault(s => s.Id == id);
+
+    if (stylist == null)
+    {
+        return Results.NotFound();
+    }
+
+    return Results.Ok(new StylistDTO()
+    {
+        Id = stylist.Id,
+        FirstName = stylist.FirstName,
+        LastName = stylist.LastName,
+        Email = stylist.Email,
+        PhoneNumber = stylist.PhoneNumber,
+        Appointments = stylist.Appointments.Select(a => new AppointmentDTO()
+        {
+            Id = a.Id,
+            CustomerId = a.CustomerId,
+            StylistId = a.StylistId,
+            AppointmentTime = a.AppointmentTime
+        }).ToList()
+    });
+});
+
+app.MapPost("/api/stylists", (HairCareDbContext db, Stylist stylist) =>
+{
+    db.Stylists.Add(stylist);
+    db.SaveChanges();
+    return Results.Created($"api/stylists/{stylist.Id}", stylist);
+});
+
+app.MapPut("api/stylists/{id}", (HairCareDbContext db, int id) =>
+{
+    Stylist? stylist = db.Stylists.FirstOrDefault(s => s.Id == id);
+
+    if (stylist == null)
+    {
+        return Results.NotFound();
+    }
+
+    stylist.Active = !stylist.Active;
+    db.SaveChanges();
+
+    return Results.Ok(stylist);
+});
 
 app.Run();
 

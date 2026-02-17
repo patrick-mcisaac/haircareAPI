@@ -13,4 +13,5 @@ public class Appointment
     public DateTime AppointmentTime { get; set; }
 
     public Customer Customer { get; set; }
+    public Stylist Stylist { get; set; }
 }

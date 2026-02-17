@@ -11,5 +11,7 @@ public class AppointmentDTO
     public int StylistId { get; set; }
     [Required]
     public DateTime AppointmentTime { get; set; }
-    public CustomerDTO? Customer { get; set; }
+
+    public CustomerDTO Customer { get; set; }
+    public StylistDTO Stylist { get; set; }
 }
